@@ -1,0 +1,10 @@
+import os
+
+cwd = os.getcwd()
+
+# build all targets in ib category
+# SetOption('clean', 1)
+# SConscript(os.path.join(cwd, '3x','SConstruct'))
+# SConscript(os.path.join(cwd, 'SConstruct.monitor'))
+SConscript(os.path.join(cwd, '42x', 'SConstruct.exphdl'))
+

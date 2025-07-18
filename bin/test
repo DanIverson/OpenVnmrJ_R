@@ -1,0 +1,9 @@
+#!/bin/bash
+
+cp ../OpenVnmrJ/src/rpsg/lib*so /vnmr/lib/.
+cp ../OpenVnmrJ/src/ncomm/lib*so /vnmr/lib/.
+cp ../OpenVnmrJ/src/rpsg/s2pul /vnmr/seqlib/.
+rm -f /vnmr/acqqueue/exp?.*
+
+
+

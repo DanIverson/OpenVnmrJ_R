@@ -1,0 +1,710 @@
+
+
+import os
+import sys
+sys.path.append(os.path.join(os.getcwd(), os.pardir, os.pardir, os.pardir, 'scripts'))
+import buildMethods
+
+#import variables  and environment from SConstruct
+Import("*")
+
+
+# we need to specify an absolute path so this SConstruct file
+# can be called from any other SConstruct file
+cwd = os.getcwd()
+
+
+
+# library dependancies
+MD5SUM = 'cd ' + cwd + ' && ' + os.path.join(os.sep,'usr','bin','md5sum')
+
+##
+## VXWORKS INCLUDE DIRECTORIES
+##
+
+NVACQ_CC = "gcc"
+NVACQ_LD = "gcc"
+
+## source files and header paths
+
+nvPsgPath   = os.path.join(cwd, os.pardir, os.pardir, 'nvpsg')
+nvPsgHdrList = [ 'lc.h',
+                 'PSGFileHeader.h',
+                 'ACode32.h',
+                 'FFKEYS.h' ]
+
+
+vnmrHdrPath = os.path.join(cwd, os.pardir, os.pardir,'vnmr');
+vnmrHdrList = [ 'errorcodes.h',
+                'data.h' ]
+
+expProcPath   = os.path.join(cwd, os.pardir, os.pardir, 'expproc')
+expProcHdrList = [ 'expDoneCodes.h' ]
+
+nvacqKernelPath = os.path.join(cwd, os.pardir, os.pardir, 'nvacqkernel')
+nvacqKernelHdrList = [ 'vWareLib.h',
+                       'vTypes.h' ]
+
+nvAcqBasePath = os.path.join(cwd,os.pardir);
+nvAcqPath = os.path.join(cwd,'.')
+
+
+##
+## nvScript List
+##
+nvScriptFileList = [ 'nvScript',
+                     'nvScript.ls',
+                     'nvScript.magnus',
+                     'nvScript.rd',
+                     'nvScript.solids' ]
+
+
+##
+## the nvlib.o source files
+##
+nvLibFileList = [ 'crc32.c',
+                  'usrTime.c',
+                  'sysUtils.c',
+                  'sysflags.c',
+                  'cntlrStates.c',
+                  'logMsgLib.c',
+                  'NDDS_Obj.c',
+                  'NDDS_PubFuncs.c',
+                  'NDDS_SubFuncs.c',
+                  'mBufferLib.c',
+                  'nameClBufs.c',
+                  'dataObj.c',
+                  'dmaDrv.c',
+                  'dmaDebug.c',
+                  'dmaMsgQueue.c',
+                  'dmaReg.c',
+                  'globals.c',
+                  'systemInit.c',
+                  'md5.c',
+                  'wrapperFuncs.c',
+                  'wc_strncmp.c' ]
+
+##
+## vwacq source included in nvlib.o, copied to the local directory
+##
+vwacqPath     = os.path.join(cwd, os.pardir, os.pardir, 'vwacq')
+vwacqHdrList = [ 'commondefs.h',
+                 'hashLib.h',
+                 'hostAcqStructs.h',
+                 'rngXBlkLib.h',
+                 'rngLLib.h',
+                 'fBufferLib.h',
+                 'acqcmds.h',
+                 'simplex.h',
+                 'serialDevice.h',
+                 'serialShims.h' ]
+vwacqFileList = [ 'hashLib.c',
+                  'rngXBlkLib.c',
+                  'rngLLib.c',
+                  'fBufferLib.c' ]
+
+masterVwAcqFileList = [ 'simplex.c',
+                        'autoshim.c',
+                        'utilm.c',
+                        'stubio.c' ]
+
+##
+## nvacq source copied to the local directory
+##
+#                 'A32Interp.c', 
+nvAcqHdrList = [ 'A32BridgeFuncs.h',
+                 'AParser.h',
+                 'autolock.h',
+                 'cntlrStates.h',
+                 'cntrlFifoBufObj.h',
+                 'crc32.h',
+                 'dataObj.h',
+                 'DDR_Acq.h',
+                 'DDR_Common.h',
+                 'ddr_fifo.h',
+                 'DDR_Globals.h',
+                 'ddr.h',
+                 'ddr_symbols.h',
+                 'DDR_Utils.h',
+                 'dmaDcr.h',
+                 'dmaDebugOptions.h',
+                 'dmaDrv.h',
+                 'dmaMsgQueue.h',
+                 'dmaReg.h',
+                 'FIFOdrv.h',
+                 'fifoFuncs.h',
+                 'flags.h',
+                 'flashUpdate.h',
+                 'fpga.h',
+                 'fpgaBaseISR.h',
+                 'fpgaBaseISR.c',
+                 'globals.h',
+                 'gpio405Lib.h',
+                 'gradient_fifo.h',
+                 'gradient.h',
+                 'gradientSPI.h',
+                 'icat.h',
+                 'icat_reg.h',
+                 'icatSpi.h',
+                 'icatISF.h',
+                 'icatSpiFifo.h',
+                 'instrWvDefines.h',
+                 'lock_reg.h',
+                 'lock.h',
+                 'lockcomm.h',
+                 'logMsgLib.h',
+                 'lpfg.h',
+                 'lpfg_top.h',
+                 'masterAux.h',
+                 'master_fifo.h',
+                 'master.h',
+                 'masterSPI.h',
+                 'mBufferLib.h',
+                 'md5.h',
+                 'monitor.h',
+                 'nameClBufs.h',
+                 'NDDS_Obj.h',
+                 'NDDS_PubFuncs.h',
+                 'NDDS_SubFuncs.h',
+                 'nexus.h',
+                 'nsr.h',
+                 'nv405GP.h',
+                 'nvhardware.h',
+                 'pfg_fifo.h',
+                 'pfg_reg.h',
+                 'pfg.h',
+                 'rf_fifo.h',
+                 'rf.h',
+                 'rfinfo.h',
+                 'shandler.h',
+                 'sibFuncs.h',
+                 'spinner.h',
+                 'spinObj.h',
+		 'Synthesizer.h',
+                 'sysflags.h',
+                 'sysUtils.h',
+                 'taskPriority.h',
+                 'tune.h',
+                 'uicDcr.h',
+                 'upLink.h',
+                 'X_interp.h',
+                 'vtfuncs.h',
+                 'simon.h',
+                 'simonet.h',
+                 'wc_strncmp.h' ]
+
+#
+# Common to all Controllers to generate the xxxexec.o 
+#
+commonFileList = [ 'nexus.c',
+                  'flashUpdate.c',
+                  'bringup.c',
+                  'downLink.c',
+                  'fifoFuncs.c',
+                  'cntrlFifoBufObj.c',
+                  'AParser.c',
+		            'A32BridgeFuncs.c',
+                  'parseAheadCntrl.c',
+                  'shandler.c',
+                  'persist.c',
+                  'nodeHB.c' ]
+
+commonFileList = [ 'AParser.c']
+
+#
+#  Common to RF,PFG, and Gradient Controllers
+#
+cntlrComFileList = [ 'cntlrphandler.c',
+		               'tune.c' ]
+
+#
+# the unique files for each controller exec
+#
+rfFileList = [ 'rf.c',
+               'simon.c',
+               'simonet.c',
+	       'Synthesizer.c',
+               'icatFuncs.c',
+               'icatISF.c',
+               'icatSpiFifo.c',
+               'icatSpi.c',
+               'rfTests.c',
+               'rfFifo.c' ]
+
+pfgFileList = [ 'pfg.c',
+                'pfgFifo.c',
+                'pfgTests.c' ]
+
+gradientFileList = [ 'gradient.c',
+                     'gradientFifo.c',
+                     'gradientSPI.c',
+                     'gradientcomm.c',
+                     'gradientTests.c' ]
+
+
+masterFileList = [ 'monitor.c',
+                   'phandler.c',
+                   'master.c',
+                   'masterConfcom.c',
+                   'masterStatcom.c',
+                   'masterFidCtSub.c',
+                   'masterLkSub.c',
+                   'masterSerial.c',
+                   'masterSPI.c',
+                   'masterFifo.c',
+                   'masterSyncAction.c',
+                   'masterTests.c',
+                   'spinnerSpi.c',
+                   'spinObj.c',
+                   'sibFuncs.c',
+                   'serialDevice.c',
+                   'vtfuncs.c',
+                   'alockfuncs.c',
+                   'autolock.c',
+                   'pneuFault.c',
+                   'shimHandlers.c',
+                   'X_interp.c',
+                   'masSpeed.c',
+                   'masterTune.c'] 
+                #   'upLinkBarrier.c' ]
+
+ddrFileList = [ 'ddrphandler.c',
+                'upLink.c',
+                'ddrFifo.c',
+                'ddrFidCtPub.c',
+                'ddrTests.c',
+                'DDR_Common.c',
+                'DDR_Globals.c',
+                'DDR_AD6634.c',
+                'DDR_Acq.c',
+                'DDR_Init.c',
+                'DDR_Data.c',
+                'DDR_Test.c',
+                'ddr.c',
+                'upLinkBarrier.c',
+                'uplinkXferLimit.c' ]
+
+ddrAdditionalObjList = [ 
+                         'tune.o' ]
+
+lockFileList = [ 'lock.c',
+                 'lockcomm.c',
+                 'lockFuncs.c',
+                 'lockonly.c',
+                 'lockphandler.c',
+                 'Lock_Cmd.c',
+                 'Lock_FID.c',
+                 'lockTests.c' ]
+
+lockObjList = [ 'nexus.o',
+                'flashUpdate.o',
+                'bringup.o',
+                'nodeHB.o',
+                'tune.o' ]
+
+lpfgFileList = [ 'lpfg.c',
+                 'lockFuncs_lpfg.c',
+                 'pfgFifo_lpfg.c',
+               ]
+
+lpfgObjList = [
+                 'pfgTests.o',
+                 'lockcomm.o',
+                 'Lock_Cmd.o',
+                 'Lock_FID.o',
+                 'lockTests.o' ]
+
+
+# 
+# Use standard Builder instead of Custom Builder (it did not pick up header files within the c files)
+#
+nvAcqEnv = Environment(CC=NVACQ_CC,
+                       LD=NVACQ_LD,
+                       CCFLAGS = ['-fno-builtin', '-O2' ],
+                       CPPDEFINES = [ 'CPU=PPC405', 'FPGA_COMPILED_IN', 'RTI_VXWORKS', 'RTI_NDDS_4x','VXWORKS','INSTRUMENT','SILKWORM','DEBUG' ],
+                       CPPPATH    = [ cwd, nvacqKernelPath, nvAcqPath ] )
+
+##
+## Create Builders for Console software
+##
+
+#
+# create a list of file name strings, from list of Scons.node.FS and list of strings
+# primary function to take compilation return list and generate a list of the x.o names
+# for use in LinkTogether      GMB 12-08-2010
+#
+# e.g. ddrofiles = extractNames([ ddrObjs, comObjs, ddrAdditionalObjList ])
+#
+def extractNames(input):
+    namelist=[]
+    #print 'extractNames:'
+    #print input
+    for item in input:
+      #
+      # if this item is a list itself then recursively call this routine
+      #
+      if isinstance(item,list):
+        namelist.extend(extractNames(item))
+      #
+      # if itself is a string use it directly
+      #
+      elif isinstance(item[0], basestring):  # is it a string
+        namelist.append(str(item))
+      #
+      # if itself just a Scons.node.FS them must index to 1st element 
+      #
+      else:    # its a Scons.node.FS
+        namelist.append(str(item[0]))
+    return namelist
+
+#===========================================================================================
+
+#
+# function to Link together the varisou .0 in to s single .o file
+#  also creates the dependencies to be the action takes place
+#   GMB  12-8-2010
+#
+def LinkTogether(env, output , destPath, sourcePath, inputs):
+     rval=[]
+     linkTargetFile = os.path.join(destPath, output)
+     inputfiles = extractNames(inputs)
+     # print "inputfiles: "
+     # print inputfiles
+     filelist=''
+     for n in inputfiles:
+       srcfile = os.path.join(sourcePath, str(n))
+       # print srcfile
+       filelist = filelist + ' ' + srcfile
+       # print filelist
+
+     cmdstring = 'gcc -o ' + linkTargetFile + ' -r ' + filelist
+     # print cmdstring 
+     env.Command(source = inputs, target = output, action = cmdstring)
+     for i in inputfiles:
+         #print i
+         linkSourceFile = os.path.join(sourcePath, i) 
+         # print 'dependency: ' + str(linkSourceFile)
+         env.Depends(target     = linkTargetFile,
+                     dependency = linkSourceFile)
+     rval.append(linkTargetFile)
+     return rval
+
+#===========================================================================================
+
+#
+# function to generate the md5sum file, and build dependency
+#
+def md5SigGen(env, output, destPath, sourcePath, inputs):
+     linkTargetFile = os.path.join(destPath, output)
+     linkSourceFile = os.path.join('./', str(inputs)) 
+     cmdstring = MD5SUM + ' ' + linkSourceFile + ' > ' + linkTargetFile
+     env.Command(source = inputs, target = output, action = cmdstring )
+     env.Depends(target     = linkTargetFile,
+                 dependency = linkSourceFile)
+     return [ linkTargetFile ]
+
+#===========================================================================================
+
+## ------------ Actual build ----------------
+
+#
+#   this was due to the customer builder, standard builder resolves this properly
+#
+#  had to force dependence on headers since headers that included headers
+#  didn't cause the preaction to happen thus headers were missing when needed
+#  causing compilation errors
+#
+
+##
+## Compile the Rest of the objs for nvlib.o
+##
+TotalLibFileList = nvLibFileList + vwacqFileList;
+lib = []
+for i in TotalLibFileList:
+   lib.append(nvAcqEnv.Object(source = [i]))
+
+# create symlink to local directory from parent directory (nvacq)
+buildMethods.makeSymLinks(nvAcqEnv, lib, cwd, nvAcqBasePath , nvLibFileList)
+buildMethods.makeSymLinks(nvAcqEnv, lib, cwd, nvAcqBasePath , nvAcqHdrList)
+
+nvlib = LinkTogether(nvAcqEnv,  'nvlib.o', cwd, cwd, [ lib ] )
+
+nvAcqEnv.Clean( nvlib, [ 'boot_bin.o', 'ddr_bin.o' ])
+# nvAcqEnv.Clean( [ 'boot_bin.o', 'ddr_bin.o' ])
+
+#
+# Create the symlinks for the files needed for nvlib
+#
+buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, vwacqPath, vwacqHdrList)
+buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, vwacqPath, vwacqFileList)
+buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, nvPsgPath, nvPsgHdrList)
+buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, vnmrHdrPath, vnmrHdrList)
+buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, expProcPath, expProcHdrList)
+
+## create md5 signature
+# nvlibmd5 = nvAcqEnv.nvMd5Gen( target = 'nvlib', source  = [ nvlib ])
+nvlibmd5 = md5SigGen(nvAcqEnv, 'nvlib.md5', cwd, cwd, 'nvlib.o' )
+
+##
+## Compile common objs for master,rf,pfg,gradient,ddr
+##
+comObjs = []
+for i in commonFileList:
+    comObjs.append(nvAcqEnv.Object(source = [i]))
+
+buildMethods.makeSymLinks(nvAcqEnv, comObjs, cwd, nvAcqBasePath , commonFileList)
+buildMethods.makeSymLinks(nvAcqEnv, comObjs, cwd, nvAcqBasePath , nvAcqHdrList)
+
+##
+## Common for rf,pfg,gradient
+##
+cntrlComObjs = []
+for i in cntlrComFileList:
+    cntrlComObjs.append(nvAcqEnv.Object(source = [i]))
+
+buildMethods.makeSymLinks(nvAcqEnv, cntrlComObjs, cwd, nvAcqBasePath , cntlrComFileList)
+
+##
+## Compile RF Objects
+##
+rfObjs = []
+for i in rfFileList:
+    rfObjs.append(nvAcqEnv.Object(source = [i]))
+
+## 
+## added the explicit dependency of rf.o  on A32Interp.c & fpgaBaseISR.c since they are included
+## within the rf.c , thus are not picked up by scons
+##
+nvAcqEnv.Depends('rf.o', [ 'A32Interp.c', 'fpgaBaseISR.c', 'rf_top.c', 'magrf_top.c' ] )
+
+
+# gen smylink of the files
+buildMethods.makeSymLinks(nvAcqEnv, rfObjs, cwd, nvAcqBasePath , rfFileList)
+buildMethods.makeSymLinks(nvAcqEnv, rfObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+rfexec = LinkTogether(nvAcqEnv,  'rfexec.o', cwd, cwd, [ rfObjs, cntrlComObjs, comObjs ] )
+
+#rfmd5 = nvAcqEnv.nvMd5Gen( target = 'rfexec', source  = [ rfexec ])
+rfmd5 = md5SigGen(nvAcqEnv, 'rfexec.md5', cwd, cwd, 'rfexec.o')
+
+##
+## Compile PFG Objects
+##
+pfgObjs = []
+for i in pfgFileList:
+    pfgObjs.append(nvAcqEnv.Object(source = [i]))
+
+# C files include as header files
+nvAcqEnv.Depends('pfg.o', [ 'A32Interp.c', 'fpgaBaseISR.c', 'pfg_top.c', 'magpfg_top.c' ] )
+
+buildMethods.makeSymLinks(nvAcqEnv, pfgObjs, cwd, nvAcqBasePath , pfgFileList)
+buildMethods.makeSymLinks(nvAcqEnv, pfgObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+pfgexec = LinkTogether(nvAcqEnv,  'pfgexec.o', cwd, cwd, [ pfgObjs, cntrlComObjs, comObjs ] )
+
+#pfgmd5 = nvAcqEnv.nvMd5Gen( target = 'pfgexec', source  = [ pfgexec ])
+pfgmd5 = md5SigGen(nvAcqEnv, 'pfgexec.md5', cwd, cwd, 'pfgexec.o')
+
+
+##
+## Compile & Links Gradient Controller
+##
+gradObjs = []
+for i in gradientFileList:
+    gradObjs.append(nvAcqEnv.Object(source = [i]))
+
+nvAcqEnv.Depends('gradient.o', [ 'A32Interp.c', 'fpgaBaseISR.c', 'gradient_top.c' ] )
+
+buildMethods.makeSymLinks(nvAcqEnv, gradObjs, cwd, nvAcqBasePath , gradientFileList)
+buildMethods.makeSymLinks(nvAcqEnv, gradObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+gradexec = LinkTogether(nvAcqEnv,  'gradientexec.o', cwd, cwd, [ gradObjs, cntrlComObjs, comObjs ] )
+
+# gradmd5 = nvAcqEnv.nvMd5Gen( target = 'gradientexec', source  = [ gradexec ])
+gradmd5 = md5SigGen(nvAcqEnv, 'gradientexec.md5', cwd, cwd, 'gradientexec.o')
+
+##
+## Compile Master Objects
+##
+totalMasterFileList = masterFileList + masterVwAcqFileList
+masterObjs = []
+for i in totalMasterFileList:
+    masterObjs.append(nvAcqEnv.Object(source = [i]))
+
+nvAcqEnv.Depends('master.o', [ 'A32Interp.c', 'fpgaBaseISR.c', 'master_top.c', 'magmaster_top.c' ] )
+
+buildMethods.makeSymLinks(nvAcqEnv, masterObjs, cwd, nvAcqBasePath , masterFileList)
+buildMethods.makeSymLinks(nvAcqEnv, masterObjs, cwd, vwacqPath , masterVwAcqFileList)
+buildMethods.makeSymLinks(nvAcqEnv, masterObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+masterexec = LinkTogether(nvAcqEnv,  'masterexec.o', cwd, cwd, [ masterObjs, comObjs ] )
+
+# buildMethods.makeSymLinks(nvAcqEnv, nvlib, cwd, vwacqPath, masterVwAcqFileList)
+
+# mastermd5 = nvAcqEnv.nvMd5Gen( target = 'masterexec', source  = [ masterexec ])
+mastermd5 = md5SigGen(nvAcqEnv, 'masterexec.md5', cwd, cwd, 'masterexec.o')
+
+##
+## Create the boot_bin.c & ddr_bin.c files include within the body of ddr.c
+##
+
+##
+## Compile DDR Objects
+##
+
+ddrObjs = []
+for i in ddrFileList:
+    ddrObjs.append(nvAcqEnv.Object(source = i))
+
+nvAcqEnv.Depends('ddr.o', [ 'A32Interp.c', 'fpgaBaseISR.c' , 'ddr_top.c', 'boot_bin.c', 'ddr_bin.c' ] )
+
+
+
+buildMethods.makeSymLinks(nvAcqEnv, ddrObjs, cwd, nvAcqBasePath , ddrFileList)
+buildMethods.makeSymLinks(nvAcqEnv, ddrObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+
+# list of Scons.node.FS whose 1st member of the node is the string name e.g. 'xxxx.o', ddrObjs[0][0]
+
+ddrexec = LinkTogether(nvAcqEnv,  'ddrexec.o', cwd, cwd, [ ddrObjs, comObjs, ddrAdditionalObjList ] )
+# print ddrexec
+
+# nvAcqEnv.Depends(target = 'ddrexec.o', dependency = [ ddrObjs, comObjs, ddrAdditionalObjList ])
+# ddrexec = nvAcqEnv.nvAcqLink( target = 'ddrexec.o' , source  = [ ddrObjs, comObjs, ddrAdditionalObjList ])
+# nvAcqEnv.Depends(target = ddrexec, dependency = [ ddrObjs, comObjs, ddrAdditionalObjList ])
+
+# ddrmd5 = nvAcqEnv.nvMd5Gen( target = 'ddrexec', source  = [ ddrexec ])
+ddrmd5 = md5SigGen(nvAcqEnv, 'ddrexec.md5', cwd, cwd, 'ddrexec.o')
+
+
+
+##
+## Compile Lock Objects
+##
+lockObjs = []
+for i in lockFileList:
+    lockObjs.append(nvAcqEnv.Object(source = [i]))
+
+# these c files included as header files
+nvAcqEnv.Depends('lock.o', [  'fpgaBaseISR.c' , 'lock_top.c' ] )
+
+buildMethods.makeSymLinks(nvAcqEnv, lockObjs, cwd, nvAcqBasePath ,
+               [ 'lock.c', 'lockcomm.c', 'lockphandler.c', 'lockTests.c', 'lockFuncs.c', 'lockonly.c' ])
+buildMethods.makeSymLinks(nvAcqEnv, lockObjs, cwd, nvAcqBasePath , [ 'A32Interp.c', 'fpgaBaseISR.c'] )
+
+
+lockexec = LinkTogether(nvAcqEnv,  'lockexec.o', cwd, cwd, [ lockObjs, lockObjList ] )
+
+# lockmd5 = nvAcqEnv.nvMd5Gen( target = 'lockexec', source  = [ lockexec ])
+lockmd5 = md5SigGen(nvAcqEnv, 'lockexec.md5', cwd, cwd, 'lockexec.o')
+
+##
+## Compile LockPfg Objects
+##
+lpfgEnv = nvAcqEnv.Clone()
+lpfgEnv.Append(CFLAGS = '-DPFG_LOCK_COMBO_CNTLR -DPFG_CNTLR -DLOCK_CONTLR')
+lpfgObjs = []
+for i in lpfgFileList:
+    lpfgObjs.append(lpfgEnv.Object(source = [i]))
+
+# these c files included as header files
+lpfgEnv.Depends('lpfg.o', [ 'A32Interp.c',  'fpgaBaseISR.c' , 'lpfg_top.c' ] )
+lpfgEnv.Depends('lpfgexec.o', [  'lockFuncs.c' , 'pfgFifo.c',
+                                 'A32Interp.c',  'fpgaBaseISR.c' , 'lpfg_top.c',
+                                 'lpfg.c', 'lockcomm.c', 'lockphandler.c',
+                                 'lockTests.c', 'lockonly.c' ] )
+
+buildMethods.makeSymLinks(lpfgEnv, lpfgObjs, cwd, nvAcqBasePath ,
+               [ 'lpfg.c', 'lockcomm.c', 'lockphandler.c',
+                 'lockTests.c', 'lockonly.c' ])
+buildMethods.appendSymLinks(lpfgEnv, lpfgObjs, cwd, nvAcqBasePath ,
+               [ 'lockFuncs', 'pfgFifo' ], '_lpfg', '.c')
+buildMethods.makeSymLinks(lpfgEnv, lpfgObjs, cwd, nvAcqBasePath ,
+                  [ 'A32Interp.c', 'fpgaBaseISR.c' ] )
+
+lpfgexec = LinkTogether(lpfgEnv,  'lpfgexec.o', cwd, cwd, [ lpfgObjs, lpfgObjList, cntrlComObjs, comObjs ] )
+
+lpfgmd5 = md5SigGen(lpfgEnv, 'lpfgexec.md5', cwd, cwd, 'lpfgexec.o')
+
+##
+## create MD5 Signatures of nvScript files
+##
+nvScriptMd5s = []
+for i in nvScriptFileList:
+    targetfile = i + '.md5'
+    nvScriptMd5s.append(md5SigGen(nvAcqEnv, targetfile, cwd, cwd, i ))
+# 
+#    # nvScriptMd5s.append(nvAcqEnv.nvMd5Gen( target = i + '.md5', source = [i]))
+
+buildMethods.makeSymLinks(nvAcqEnv, nvScriptMd5s, cwd, nvAcqBasePath , nvScriptFileList)
+
+##
+## create MD5 Signatures of iCAT FPGA related files
+##
+
+# define with absolute path where built files will be copied
+vnmrAcqPath  = os.path.join(cwd, os.pardir, os.pardir, os.pardir, os.pardir,
+                                   'vnmr', 'acq','download')
+if not os.path.exists(vnmrAcqPath):
+   os.makedirs(vnmrAcqPath)
+
+propulseAcqPath = os.path.join(cwd, os.pardir, os.pardir, os.pardir, os.pardir,
+                                    'console', 'propulse', 'acq', 'download')
+if not os.path.exists(propulseAcqPath):
+   os.makedirs(propulseAcqPath)
+
+vnmrsAcqPath = os.path.join(cwd, os.pardir, os.pardir, os.pardir, os.pardir,
+                                    'console', 'vnmrs', 'acq', 'download')
+if not os.path.exists(vnmrsAcqPath):
+   os.makedirs(vnmrsAcqPath)
+
+# actions to be performed after targets are built
+
+nvAcqEnv.AddPostAction(rfexec,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'rfexec.o'))))
+nvAcqEnv.AddPostAction(rfmd5,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'rfexec.md5'))))
+
+nvAcqEnv.AddPostAction(pfgexec,
+                          Action(Copy(vnmrsAcqPath, os.path.join(cwd, 'pfgexec.o'))))
+nvAcqEnv.AddPostAction(pfgmd5,
+                          Action(Copy(vnmrsAcqPath, os.path.join(cwd, 'pfgexec.md5'))))
+
+nvAcqEnv.AddPostAction(gradexec,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'gradientexec.o'))))
+nvAcqEnv.AddPostAction(gradmd5,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'gradientexec.md5'))))
+
+nvAcqEnv.AddPostAction(masterexec,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'masterexec.o'))))
+nvAcqEnv.AddPostAction(mastermd5,
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'masterexec.md5'))))
+
+nvAcqEnv.AddPostAction('ddrexec.o',
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'ddrexec.o'))))
+nvAcqEnv.AddPostAction('ddrexec.md5',
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, 'ddrexec.md5'))))
+
+nvAcqEnv.AddPostAction(lockexec,
+                          Action(Copy(vnmrsAcqPath, os.path.join(cwd, 'lockexec.o'))))
+nvAcqEnv.AddPostAction(lockmd5,
+                          Action(Copy(vnmrsAcqPath, os.path.join(cwd, 'lockexec.md5'))))
+
+lpfgEnv.AddPostAction(lpfgexec,
+                          Action(Copy(propulseAcqPath, os.path.join(cwd, 'lpfgexec.o'))))
+lpfgEnv.AddPostAction(lpfgmd5,
+                          Action(Copy(propulseAcqPath, os.path.join(cwd, 'lpfgexec.md5'))))
+
+
+for i in range(len(nvScriptMd5s)):
+    if nvScriptFileList[i] != "nvScript.magnus":
+          nvAcqEnv.AddPostAction(nvScriptMd5s[i],
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd,  nvScriptFileList[i] + '.md5'))))
+          nvAcqEnv.AddPostAction(nvScriptMd5s[i],
+                          Action(Copy(vnmrAcqPath, os.path.join(cwd, nvScriptFileList[i]))))
+          if nvScriptFileList[i] == "nvScript":
+                nvAcqEnv.AddPostAction(nvScriptMd5s[i],
+                          Action(Copy(os.path.join(vnmrAcqPath,nvScriptFileList[i]+ '.std'+ '.md5'),os.path.join(cwd,nvScriptFileList[i]+'.md5'))))
+
+                nvAcqEnv.AddPostAction(nvScriptMd5s[i],
+                          Action(Copy(os.path.join(vnmrAcqPath,nvScriptFileList[i]+'.std'),os.path.join(cwd,nvScriptFileList[i] ))))
