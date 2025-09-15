@@ -32,11 +32,16 @@
 #include "errno.h"
 #include "errorcodes.h"		/* from Vnmr */
 #include "expDoneCodes.h"
+#ifndef RACQ
 #include "Lock_Cmd.h"
 #include "cntlrStates.h"
 #include "gradient_fifo.h"
 #include "nvhardware.h"
 #include "instrWvDefines.h"
+#else
+#define MASTER_BRD_TYPE_ID 0
+#define OK 0
+#endif
 
 #ifdef VXWORKS
 #ifdef MASTER_CNTLR
@@ -54,15 +59,24 @@
 #include "sysUtils.h"
 
 #else
+#ifdef RACQ
+#include "logMsgLib.h"
+extern void complain();
+#else
 #include "FrontEnd.h"
 #endif
+#endif
 #include "lc.h"
+#ifdef DDR_CNTLR
 #include "ddr_symbols.h"
 #include "upLink.h"
+#endif
 
 double unpackd(int *buffer, int *index);
 
+#ifndef RACQ
 extern MSG_Q_ID pDataTagMsgQ;	/* dspDataXfer task  -> dataPublisher task */
+#endif
 extern int warningAsserted;
 extern int readuserbyte;
 
@@ -121,8 +135,10 @@ extern int BrdType;		/* board type */
 extern int AbortingParserFlag;
 extern int failAsserted;
 
+#ifndef RACQ
 extern DATAOBJ_ID pTheDataObject;	/* FID statblock, etc. */
 extern ACODE_ID pTheAcodeObject;	/* Acode object */
+#endif
 
 extern int *pGradWfg;		/* malloc-ed in AParser.c */
 
@@ -136,9 +152,11 @@ int dmpRtVarsFlg = 0;
 
 unsigned int *p2CurrentWord;
 unsigned int *p2EndOfCodes;
-int *p2ReferenceLocation = 0;
+unsigned int *p2ReferenceLocation = 0;
 
+#ifdef RF_CNTLR
 static unsigned int *p2CurrentWordStart;
+#endif
 #define MAX_FIDSHIMNT 256	/* max value of scans to average for fidshim */
 
 /* Tables */
@@ -374,7 +392,7 @@ int getLcSSCT()
 
 int endofScan(int nt, int bs, int *p2ssct, int *p2ct, int *p2cbs, int fsval)
 {
-	int state, temp;
+	int state;
 	state = -1;
 	if (*p2ssct > 0) {
 		(*p2ssct)--;
@@ -747,7 +765,6 @@ int getTableElement(int table_index, int element, int *errorcode, char *emssg)
 	unsigned int *tableList, *p2TableWord;
 	int tableSize, autoIncrFlag, divNFactor, elemSize;
 	int index;
-	int i;
 
 	*errorcode = 0;
 
@@ -817,6 +834,7 @@ int getTableElement(int table_index, int element, int *errorcode, char *emssg)
 		else
 			return (0);
 	}
+	return (0);
 }
 
 void
@@ -826,7 +844,6 @@ putTableElement(int table_index, int element, int val, int *errorcode,
 	unsigned int *tableList, *p2TableWord;
 	int tableSize, autoIncrFlag, divNFactor, elemSize;
 	int index;
-	int i;
 
 	*errorcode = 0;
 
@@ -1643,8 +1660,10 @@ int A32_interp()
 	int action, tmp, parseCount;
 	int numargs;
 	int npasses, nrem, nextra;
+#ifndef RACQ
 	unsigned int *ipntr, *ac_base;
 	int ss, sscnt, ct, nt, bs, flag;
+#endif
     /********TEMPORARY ************/
 	int smallPhaseWord;
 	int quadPhaseWord;
@@ -1758,10 +1777,12 @@ int A32_interp()
 
 	curAcodeNumber = 1;
 	strcpy(expName, "BOGUS");
+#ifndef RACQ
 	ac_base = p2CurrentWord =
 	    getFirstAcodeSet(expName, curAcodeNumber, 0, 0);
 	pAcqReferenceData = &acqReferenceData;
 	rtVar = (int *)&(acqReferenceData);
+#endif
 
 #endif
 
@@ -1779,6 +1800,7 @@ int A32_interp()
 		}
 #endif
 
+#ifndef RACQ
 		/* for use use MRIUSERBYTE & prority change */
 		if (priorityInversionCntDwn > 0) {
 #ifdef ENABLE_BUFFER_DURATION_CALC
@@ -1807,6 +1829,7 @@ int A32_interp()
 			resetParserPriority();
 			priorityInversionCntDwn--;	/* now we won't keep reseting priority when unnecessary */
 		}
+#endif
 
 		if ((AbortingParserFlag == 1) || (failAsserted == 1)) {
 			if (priorityInversionCntDwn <= 0)	/* trial */
@@ -2684,7 +2707,7 @@ int A32_interp()
 		case TCOUNT:
 			{
 				int *p2TableWord, *ptr;
-				int tableSize, elemSize, index, count;
+				int tableSize, elemSize, count;
 				i = *p2CurrentWord++;
 				j = *p2CurrentWord++;
 				k = *p2CurrentWord++;
@@ -2809,8 +2832,10 @@ int A32_interp()
 				TableSizes[i] = 0;
 			}
 
+#ifndef RACQ
 			pAcodeId->initial_scan_num = pAcqReferenceData->ct;
 			pAcodeId->cur_scan_data_adr = 0;
+#endif
 
 			if (pAcqReferenceData->rtonce == 0)	/* reset the xgate count only once during the entire scan */
 				xgateCount = 0LL;
@@ -2914,14 +2939,16 @@ int A32_interp()
 				  &(pAcqReferenceData->bsct), l);
 
 			if (dmpRtVarsFlg > 0) {
-				printf("ENDOFSCAN: for fid: %lu, ct: %lu \n",
+				printf("ENDOFSCAN: for fid: %u, ct: %u \n",
 				       curAcodeNumber, pAcqReferenceData->ct);
 				dumpRtVars();
 			}
 
+#ifndef RACQ
 			if (BrdType != DDR_BRD_TYPE_ID) {	/* Master */
 				parseAheadDecrement(WAIT_FOREVER);	/* pend parser max of 10 sec then times out */
 			}
+#endif
 			break;
 
 #ifndef DDR_CNTLR
@@ -2973,6 +3000,7 @@ int A32_interp()
 			}
 			curAcodeNumber++;	/* needs il handlers */
 
+#ifndef RACQ
 			pAcodeId->cur_acode_set = curAcodeNumber;
 			pAcodeId->cur_acode_base = pAcodeId->cur_jump_base =
 			    ac_base = p2CurrentWord =
@@ -2984,13 +3012,16 @@ int A32_interp()
 				errorcode = SYSTEMERROR + NOACODESET;
 				return (errorcode);	/* for the READER ONLY */
 			}
+#endif
 
+#ifndef RACQ
 			DPRINT1(+0,
 				"A32Interp(): pAcodeId->cur_acode_size: %d bytes\n",
 				pAcodeId->cur_acode_size);
 			p2EndOfCodes =
 			    pAcodeId->cur_acode_base +
 			    (pAcodeId->cur_acode_size / sizeof(int));
+#endif
 
 			if (curAcodeNumber == 1) {	/* start of sequence, 0 = presequence stuff */
 				/* zero FIFO instruction Instruction count register */
@@ -3061,7 +3092,7 @@ int A32_interp()
 
 			/* removed for now, fixed with change in PSG using FRTINIT for */
 			/* peloop & msloop imaging issues */
-			/* initvalFlag = 1;   /* make sure RTINIT does set rt vals */
+			/* initvalFlag = 1; */   /* make sure RTINIT does set rt vals */
 
 			i = *p2CurrentWord++;
 			DPRINT2(+2, "ILCJMP: ct: %ld , nt: %ld \n",
@@ -3079,10 +3110,11 @@ int A32_interp()
 					expName, curAcodeNumber);
 				markAcodeSetDone(expName, curAcodeNumber);
 				rmAcodeSet(expName, curAcodeNumber);
-				/* newFid = 1;   /* results in interrupt that increments FID number to status */
+				/* newFid = 1; */   /* results in interrupt that increments FID number to status */
 			}
 			curAcodeNumber = 1;
 
+#ifndef RACQ
 			pAcodeId->cur_acode_set = curAcodeNumber;
 			pAcodeId->cur_acode_base = pAcodeId->cur_jump_base =
 			    ac_base = p2CurrentWord =
@@ -3101,6 +3133,7 @@ int A32_interp()
 			p2EndOfCodes =
 			    pAcodeId->cur_acode_base +
 			    (pAcodeId->cur_acode_size / sizeof(int));
+#endif
 
 			/* increment the parsed interleave cycle count */
 			pAcqReferenceData->il_incr++;
@@ -3117,8 +3150,10 @@ int A32_interp()
 			 * *why* a xmtr or rcvr stopped
 			 */
 		case SETVT:
+#ifndef RACQ
 			queueSetVT(p2CurrentWord, pAcodeId);
 			p2CurrentWord += 5;
+#endif
 			break;
 
 			/*
@@ -3130,8 +3165,10 @@ int A32_interp()
 			 * error to send.
 			 */
 		case WAIT4VT:
+#ifndef RACQ
 			queueWait4VT(p2CurrentWord, pAcodeId);
 			p2CurrentWord += 2;
+#endif
 			break;
 
 			/*
@@ -3140,8 +3177,10 @@ int A32_interp()
 			 * Set the spin speed in Hz with options.TBD.
 			 */
 		case SETSPIN:
+#ifndef RACQ
 			queueSetSpin(p2CurrentWord, pAcodeId);
 			p2CurrentWord += 3;
+#endif
 			break;
 			/*
 			 * CHECKSPIN delta, errodes, flag
@@ -3149,8 +3188,10 @@ int A32_interp()
 			 * Verify spin is within delta of set point.TBD.
 			 */
 		case CHECKSPIN:
+#ifndef RACQ
 			queueCheckSpin(p2CurrentWord, pAcodeId);
 			p2CurrentWord += 3;
+#endif
 			break;
 
 			/*
@@ -3163,6 +3204,7 @@ int A32_interp()
 			 */
 		case LOCKAUTO:
 			{
+#ifndef RACQ
 				DPRINT(-1, "auto lock ...\n");
 				/* vwacq was: if ( (int) rt_tbl[ *ac_cur ] == 0) */
 				/* arg1 = lockmode
@@ -3173,11 +3215,13 @@ int A32_interp()
 					queueAutoLock(p2CurrentWord, pAcodeId);
 				}
 				p2CurrentWord += 3;
+#endif
 			}
 			break;
 
 		case SHIMAUTO:
 			{
+#ifndef RACQ
 				int whenshim, shimmode, len;
 				int tmpSampleHasChanged = 1;
 
@@ -3195,6 +3239,7 @@ int A32_interp()
 					queueAutoShim(pAcodeId);
 				}
 				p2CurrentWord += len;
+#endif
 			}
 			break;
 
@@ -6373,11 +6418,11 @@ int A32_interp()
 
 				/* remove all controllers that have respond to past rollcalls */
 				/* so we can start with a blank slate and see who comes back  */
-				/* cntlrStatesRemoveAll();  /* remove all controllers */
+				/* cntlrStatesRemoveAll(); */  /* remove all controllers */
 				cntlrStatesAdd("master1", CNTLR_READYnIDLE,
 					       MASTER_CONFIG_STD);
 
-				/* rollcall(); /* invoke rollcall to get current reponding cntlrs */
+				/* rollcall(); */ /* invoke rollcall to get current reponding cntlrs */
 				/*  taskDelay(calcSysClkTicks(17));  taskDelay(1); */
 
 				/* forget the above rollcal , rollcall was issue prior to intering the intrepeter so
@@ -6796,6 +6841,7 @@ int A32_interp()
 
 		case MRIUSERBYTE:
 			{
+#ifndef RACQ
 				int rw, i, ticks, auxVal;
 				rw = *p2CurrentWord++;	// read or write?
 				i = *p2CurrentWord++;	// rtVar index
@@ -6832,6 +6878,7 @@ int A32_interp()
 					queueMRIRead(i, ticks, pAcodeId);
 
 				}
+#endif
 			}
 			break;
 			/*
@@ -6869,6 +6916,7 @@ int A32_interp()
 
 		case GETSAMP:
 			{
+#ifndef RACQ
 				int bumpFlag;
 				int ret, skipsampdetect;
 				unsigned long sample2ChgTo;
@@ -6889,11 +6937,13 @@ int A32_interp()
 					  pAcodeId, bumpFlag);
 				DPRINT(0,
 				       "==========> GETSAMP: Resume Parser\n");
+#endif
 			}
 			break;
 
 		case LOADSAMP:
 			{
+#ifndef RACQ
 				int bumpFlag, spinActive;
 				int ret, skipsampdetect;
 				unsigned long sample2ChgTo;
@@ -6918,6 +6968,7 @@ int A32_interp()
 					      spinActive, bumpFlag);
 				DPRINT(0,
 				       "==========> LOADSAMP: Resume Parser\n");
+#endif
 			}
 			break;
 
@@ -6966,8 +7017,9 @@ int A32_interp()
 	return (errorcode);	/* for the READER ONLY */
 }
 
-SendZeroFid(int srctag)
+int SendZeroFid(int srctag)
 {
+#ifndef RACQ
 	PUBLSH_MSG pubMsg;
 
 	// FID_STAT_BLOCK *pStatBlk;
@@ -6985,6 +7037,7 @@ SendZeroFid(int srctag)
 	msgQSend(pDataTagMsgQ, (char *)&pubMsg, sizeof(pubMsg), WAIT_FOREVER,
 		 MSG_PRI_NORMAL);
 	// taskDelay(30);
+#endif
 	return OK;
 }
 
@@ -7019,25 +7072,27 @@ void syncAction(long signaltype)
 {
 	switch (signaltype) {
 	case MRIUSERBYTE:
+#ifndef RACQ
 		if ((readuserbyte & 0xff) != 0) {
 			semGive(pTheAcodeObject->pSemParseSuspend);
 			resetShandlerPriority();
 		}
+#endif
 		break;
 	default:
 		break;
 	}
 	return;
 }
-#endif
+#endif   // ifdef DDR_CNTRL
 
 /* for non master AParser or interperters setting the status does nothing
    only the master changes these states */
-setAcqState(int acqstate)
+void setAcqState(int acqstate)
 {
 }
 
-setFidCtState(int fidnum, int ct)
+void setFidCtState(int fidnum, int ct)
 {
 }
 
@@ -7060,11 +7115,11 @@ void setVTinterLk(int in)
 void setSpinInterlk(int in)
 {
 }
-#endif
+#endif   // ifndef MASTER_CNTLR
 
 #ifndef DDR_CNTLR
   /* DDR has a special version of this function */
-zeroFidCtState()
+void zeroFidCtState()
 {
 }
 #endif
@@ -7082,9 +7137,7 @@ zeroFidCtState()
 /*		 1 - to perform operation  				*/
 /*----------------------------------------------------------------------*/
 
-chkshim(mask, ct, sampchg)
-int mask, *sampchg;
-long ct;
+int chkshim(int mask, long ct, int *sampchg)
 {
 	int doit;
 	doit = FALSE;
@@ -7097,7 +7150,7 @@ long ct;
 		}
 		break;
 	case 4:
-		/* if (lgostat == BSCODE)  /* If Done Block Size, Autoshim */
+		/* if (lgostat == BSCODE) */  /* If Done Block Size, Autoshim */
 		{
 /*s*/ DPRINT(0, "Shim BS\n");
 			doit = TRUE;

@@ -1,0 +1,54 @@
+from __future__ import print_function
+import os
+import sys
+sys.path.append(os.path.join(os.getcwd(), os.pardir, os.pardir, 'scripts'))
+import buildMethods
+
+platform = sys.platform        # sys.platform -> 'linux2' linux, 'interix6' win7 SUA
+
+# targets
+a32interpTarget = 'A32Interp'
+
+# we need to specify an absolute path so this SConstruct file
+# can be called from any other SConstruct file
+cwd = os.getcwd()
+
+# source files
+nvpsgPath    = os.path.join(cwd, os.pardir, 'nvpsg')
+nvpsgHdrList = ['ACode32.h',
+                'FFKEYS.h',
+                'lc.h',
+               ]
+
+vnmrPath    = os.path.join(cwd, os.pardir, 'vnmr')
+vnmrHdrList = ['errorcodes.h',
+               ]
+
+expprocPath    = os.path.join(cwd, os.pardir, 'expproc')
+expprocHdrList = ['expDoneCodes.h',
+               ]
+
+nvacqPath    = os.path.join(cwd, os.pardir, 'nvacq')
+nvacqHdrList = ['logMsgLib.h',
+               ]
+
+a32interpFileList = ['A32Interp.c']
+a32interpFileList = ['A32Interp.c']
+
+# build environments
+env = Environment(CCFLAGS    = '-O -Wall',
+                      CPPDEFINES = ['RACQ'],
+                      LINKFLAGS  = '',
+                      CPPPATH    = [cwd])
+
+buildMethods.makeSymLinks(env, a32interpTarget, cwd, nvpsgPath, nvpsgHdrList)
+buildMethods.makeSymLinks(env, a32interpTarget, cwd, vnmrPath, vnmrHdrList)
+buildMethods.makeSymLinks(env, a32interpTarget, cwd, expprocPath, expprocHdrList)
+buildMethods.makeSymLinks(env, a32interpTarget, cwd, nvacqPath, nvacqHdrList)
+
+# actual builds
+# give these a different object name to avoid collision with diffparams build
+a32interp = env.Program(target = a32interpTarget,
+                            source = [a32interpFileList],
+                            LIBS   = [])
+
