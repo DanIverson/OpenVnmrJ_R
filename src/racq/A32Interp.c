@@ -60,8 +60,9 @@
 
 #else
 #ifdef RACQ
-#include "logMsgLib.h"
+#include "debug.h"
 extern void complain();
+#define RACQCALL(acode) DPRINT1(0, "ACODE %d called\n", acode)
 #else
 #include "FrontEnd.h"
 #endif
@@ -124,16 +125,18 @@ extern int auxLockByte;
 extern RING_ID pSyncActionArgs;
 #endif
 
+#ifndef RACQ
 int codesOK;
 int mripricnt = 50;		/* for use use MRIUSERBYTE & priority change */
-int il_flag = 0;
 int zgradcorrhi = 0;		/* gradient correction for L350 deadband */
 int zgradcorrlo = 0;		/* gradient correction for L350 deadband */
+#endif
+int il_flag = 0;
 
-extern int residentFlag;
-extern int BrdType;		/* board type */
-extern int AbortingParserFlag;
-extern int failAsserted;
+int residentFlag;
+int BrdType;		/* board type */
+int AbortingParserFlag;
+int failAsserted;
 
 #ifndef RACQ
 extern DATAOBJ_ID pTheDataObject;	/* FID statblock, etc. */
@@ -984,6 +987,7 @@ int
 progDecOn(int patid, long long pat_ticks, long long timePerState,
 	  int wordsPerState, int patoffset, long long patSkipTicks, int reps)
 {
+#ifndef RACQ
 	/* check of patid */
 	int errorCode;
 	DecInfo.patId = patid;
@@ -1006,6 +1010,7 @@ progDecOn(int patid, long long pat_ticks, long long timePerState,
 		"progDecOn: ticks: %lld, offset: %d, TimePerState: %lld, WordsPerState: %ld\n",
 		DecInfo.patTicks, DecInfo.startOffset, DecInfo.timeperState,
 		DecInfo.wordsperstate);
+#endif
 	return (0);
 	/*  if (ix == 0) DecInfo.remTicks = 0LL; */
 }
@@ -1029,6 +1034,9 @@ int isIncr(int w1)
 
 int progDecOff(int patid, int policy, long long runTicks)
 {
+#ifdef RACQ
+         RACQCALL(action);
+#else
 	long long loopcount, temp, totalTicks;
 	int loops, status, index, offsetFlag;
 	int outstates;
@@ -1256,12 +1264,16 @@ int progDecOff(int patid, int policy, long long runTicks)
 		errLogRet(LOGIT, debugInfo, "progDecOff: BAD POLICY!!!\n");
 
 	DecInfo.vTicks = 0LL;
+#endif   // RACQ
 	return (0);
 }
 
 int
 progDecSkipOff(int patid, int policy, long long runTicks, long long skipTicks)
 {
+#ifdef RACQ
+         RACQCALL(action);
+#else
 	long long loopcount, temp, totalTicks;
 	int loops, status;
 	int outstates, skipfull_states, fract_ticks;
@@ -1532,6 +1544,7 @@ progDecSkipOff(int patid, int policy, long long runTicks, long long skipTicks)
 		errLogRet(LOGIT, debugInfo, "progDecSkipOff: BAD POLICY!!!\n");
 
 	DecInfo.vTicks = 0LL;
+#endif   // RACQ
 
 	return (0);
 }
@@ -1622,11 +1635,15 @@ calc_obl_matrix(double ang1, double ang2, double ang3, double *tm11,
 
 unsigned AdvisedFreq = 0;
 
+#ifdef RACQ
+int A32_interp(int *p2CurrentWord)
+#else
 #ifdef VXWORKS
 int A32_interp(ACODE_ID pAcodeId)
 #else
 int A32_interp()
 #endif
+#endif  // RACQ
 {
 
 #if defined(PFG_CNTLR) || defined(GRADIENT_CNTLR)
@@ -1686,11 +1703,11 @@ int A32_interp()
 	int avar = -1;
 	int pvar = -1;
 	int dbytes = 4;
-	unsigned long fidDim = 0;
-	unsigned long fidNF = 0;
-	unsigned long fidNFMod = 0;
-	unsigned long fidBuffs = 0;
-	unsigned long fidBuffSize = 0;
+	unsigned int fidDim = 0;
+	unsigned int fidNF = 0;
+	unsigned int fidNFMod = 0;
+	unsigned int fidBuffs = 0;
+	unsigned int fidBuffSize = 0;
 /* loop stacks & variables */
 #define NESTEDLOOP_DEPTH 10
 	int nvLoopCountInd[NESTEDLOOP_DEPTH];
@@ -1714,11 +1731,13 @@ int A32_interp()
 #endif
 
 	skipped = 0;
+#ifndef RACQ
 	tnlk_flag = 0;
 	codesOK = 1;		/* true */
 	readuserbyte = 0;
 
 	priorityInversionCntDwn = -1;	/* for use use MRIUSERBYTE & prority change */
+#endif
 
 #ifdef VXWORKS
 	strcpy(expName, pAcodeId->id);
@@ -1789,7 +1808,9 @@ int A32_interp()
 #ifdef TIMING_DIAG_ON		/* compile in timing diagnostics */
 	TSPRINT("Start to Parse Acodes:");
 #endif
+#ifndef RACQ
 	while (codesOK) {
+#endif
 		DPRINT1(+1, "----------  Acode: 0x%lx\n", *p2CurrentWord);
 
 #ifdef TIMING_DIAG_ON		/* compile in timing diagnostics */
@@ -1832,12 +1853,15 @@ int A32_interp()
 #endif
 
 		if ((AbortingParserFlag == 1) || (failAsserted == 1)) {
+#ifndef RACQ
 			if (priorityInversionCntDwn <= 0)	/* trial */
 				resetParserPriority();
+#endif
 			errorcode = 0;
 			return (errorcode);	/* for aborting parser 'AA' */
 		}
 
+#ifndef RACQ
 		/* stupid logic for end of buffer */
 		if (p2CurrentWord >= p2EndOfCodes) {
 			DPRINT1(-1, "----------  Acode: 0x%lx\n",
@@ -1861,16 +1885,22 @@ int A32_interp()
 
 		if (!codesOK)
 			break;
+#endif
 
 		action = *p2CurrentWord++;
 
 		/* since this can be very verbose added a flag to enable/disable this Windview logging */
+#ifndef RACQ
 		if (wvlogAcodes == 1)
 			wvEvent((1000 + (action & 0xFFF)), NULL, NULL);
+#endif
 
 		switch (action) {
 
 		case INTER_REV_CHK:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(+1, " INTER_REV_CHK\n");
 			if (*p2CurrentWord++ != COMPILEKEY) {
 				/* complain(); goIdle(); break; */
@@ -1882,27 +1912,43 @@ int A32_interp()
 				 */
 				return (errorcode);
 			}
+#endif   // RACQ
 			break;
 
 		case FIFOSTART:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " FIFO_START\n");
 			startFifo4Exp();	/* startCntrlFifo(); */
+#endif   // RACQ
 			break;
 
 		case FIFOHALT:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " FIFO_HALT\n");
 			writeCntrlFifoWord(LATCHKEY | DURATIONKEY | 0);
+#endif   // RACQ
 			break;
 
 		case WAIT4XSYNC:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " WAIT4XSYNC\n");
 			temp = *p2CurrentWord++;
 #ifdef EXTERNALGATEKEY_DEFINED
 			writeCntrlFifoWord(LATCHKEY | EXTERNALGATEKEY | temp);
 #endif
+#endif   // RACQ
 			break;
 
 		case SENDSYNC:	/* only the master should get this one */
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT2(-1,
 				"SENDSYNC: post delay %d ticks, prepScan: %d\n",
 				*p2CurrentWord, *(p2CurrentWord + 1));
@@ -1921,9 +1967,13 @@ int A32_interp()
 			if (pAcqReferenceData->il_incr == 0) {	/* not on an IL cycle */
 				SystemSync(temp, prepflag);	/* just the 1st time, not on additional IL cycles */
 			}
+#endif   // RACQ
 			break;
 
 		case WAIT4ISYNC:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			temp = *p2CurrentWord++;	/* post delay in ticks, 8 = 100ns */
 			DPRINT1(-1, " WAIT4ISYNC, postdelay ticks: %d\n", temp);
 
@@ -1939,13 +1989,18 @@ int A32_interp()
 			if (pAcqReferenceData->il_incr == 0) {	/* not on an IL cycle */
 				SystemSync(temp, 0);	/* just the 1st time, not on additional IL cycles */
 			}
+#endif   // RACQ
 			break;
 
 		case WAIT4STOP:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, "WAIT4STOP\n");
 			wait4CntrlFifoStop();
 			/* cntrlFifoWait4StopItrp(); */
 			/* wait4NormalTermSignal(); */
+#endif   // RACQ
 			break;
 
 			/* 
@@ -1953,18 +2008,26 @@ int A32_interp()
 			 * This acode is not invloved with the functionality of xgate; rather it is for correcting DD2 RF tick counts
 			 */
 		case SYNC_XGATE_COUNT:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, "SYNC_XGATE_COUNT\n");
 			i = *p2CurrentWord++;
 			j = *p2CurrentWord++;
 			xgateCount++;
+#endif   // RACQ
 			break;
 
 			/*
 			 * force the working buffer of acodes to be queued for DMA
 			 */
 		case FLUSHFFBUF:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, "FLUSHFFBUF\n");
 			flushCntrlFifoRemainingWords();
+#endif   // RACQ
 			break;
 
 			/*
@@ -1972,9 +2035,13 @@ int A32_interp()
 			 * words of data
 			 */
 		case DLOAD:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			j = *p2CurrentWord++;
 			writeCntrlFifoBuf(p2CurrentWord, j);
 			p2CurrentWord += j;
+#endif   // RACQ
 			break;
 
 			/*
@@ -1994,6 +2061,9 @@ int A32_interp()
 			 * to the FIFO via DMA engine.
 			 */
 		case EXECUTEPATTERN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			pat_index = *p2CurrentWord++;
 			DPRINT1(-1, "EXECUTE PATTERN %d\n", pat_index);
 			errorcode =
@@ -2014,6 +2084,7 @@ int A32_interp()
 			} else {
 				return (errorcode);
 			}
+#endif   // RACQ
 			break;
 
 			/*
@@ -2021,6 +2092,9 @@ int A32_interp()
 			 * pattern index comprised of a base index + rtvalue
 			 */
 		case EXECRTPATTERN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			i = *p2CurrentWord++;
 			j = *p2CurrentWord++;
 			pat_index = i + rtVar[j];
@@ -2043,6 +2117,7 @@ int A32_interp()
 			} else {
 				return (errorcode);
 			}
+#endif   // RACQ
 			break;
 
 			/*
@@ -2050,6 +2125,9 @@ int A32_interp()
 			 * delay is added at the end to align timing
 			 */
 		case MULTIPATTERN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " MULTIPATTERN\n");
 			pat_index = *p2CurrentWord++;
 			npasses = *p2CurrentWord++;	/* npasses argument */
@@ -2087,8 +2165,12 @@ int A32_interp()
 					  "MULTIPATTERN: BAD DELAY.\n");
 				return (HDWAREERROR + INVALIDACODE);
 			}
+#endif   // RACQ
 			break;
 		case RTFREQ:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			i = *p2CurrentWord++;	// rt var id
 			j = *p2CurrentWord++;	// pattern number
 			k = *p2CurrentWord++;	// size of one transfer
@@ -2111,21 +2193,33 @@ int A32_interp()
 			for (i = 0; i < k; i++)
 				DPRINT1(-1, "value = %x", patternList[i]);
 			writeCntrlFifoBuf(patternList, k);
+#endif   // RACQ
 			break;
 			/* TABLEDEF, TBD */
 		case SAFESTATE:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			// currently only RF uses..
 			setSafeGate(*p2CurrentWord++);
 			// IMPORTANT this sets the conditions AFTER AN ABORT
 			resetSafeVals();
+#endif   // RACQ
 			break;
 
 		case SOFTDELAY:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " SOFTDELAY\n");
 			taskDelay(*p2CurrentWord++);
+#endif   // RACQ
 			break;
 
 		case BIGDELAY:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " BIGDELAY\n");
 			lscratch1.nword[0] = *p2CurrentWord++;	/* pattern ticks high word */
 			lscratch1.nword[1] = *p2CurrentWord++;	/* pattern ticks low word */
@@ -2137,10 +2231,12 @@ int A32_interp()
 				writeCntrlFifoWord(LATCHKEY | DURATIONKEY | l);
 				lscratch1.lword -= l;	/* what's left */
 			}
+#endif   // RACQ
 			break;
 
 			/* RTINIT  rt[i] = j user */
 		case RTINIT:
+         RACQCALL(action);
 			i = *p2CurrentWord++;	/* sub code or operation */
 			j = *p2CurrentWord++;	/* result unary op an RT var */
 			if (initvalFlag == 1) {
@@ -2150,6 +2246,7 @@ int A32_interp()
 
 			/* FRTINIT  rt[i] = j always */
 		case FRTINIT:
+         RACQCALL(action);
 			i = *p2CurrentWord++;	/* sub code or operation */
 			j = *p2CurrentWord++;	/* result unary op an RT var */
 			rtVar[j] = i;	/* 1st arg value;  second arg rtvar destination */
@@ -2159,6 +2256,7 @@ int A32_interp()
 			/* RT operations group...  sub code, index */
 			/* rt[j] = op(i) rt[j] */
 		case RTOP:
+         RACQCALL(action);
 			i = *p2CurrentWord++;	/* sub code or operation */
 			j = *p2CurrentWord++;	/* result unary op an RT var */
 			RT1op(i, j);
@@ -2166,6 +2264,7 @@ int A32_interp()
 
 			/* rt[k] = op(i) rt[j] */
 		case RT2OP:
+         RACQCALL(action);
 			i = *p2CurrentWord++;	/* sub code or operation */
 			j = *p2CurrentWord++;	/* source variable */
 			k = *p2CurrentWord++;	/* result in k */
@@ -2174,6 +2273,7 @@ int A32_interp()
 
 			/* rt[l] = rt[j]  op(i) rt[k] */
 		case RT3OP:
+         RACQCALL(action);
 			i = *p2CurrentWord++;	/* sub code or operation */
 			j = *p2CurrentWord++;	/* upper bound */
 			k = *p2CurrentWord++;	/* lower bound */
@@ -2192,6 +2292,9 @@ int A32_interp()
 			 * - 64 bit range
 			 */
 		case RTASSERT:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " RTASSERT\n");
 			i = *p2CurrentWord++;	/* index */
 			j = *p2CurrentWord++;	/* upper bound */
@@ -2199,24 +2302,33 @@ int A32_interp()
 			if ((rtVar[i] > j) || (rtVar[i] < k))
 				errLogRet(LOGIT, debugInfo,
 					  "RTASSERT: THIS IS VERY WRONG.\n");
+#endif   // RACQ
 			break;
 
 		case RTASSERTH:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " RTASSERTH\n");
 			i = *p2CurrentWord++;	/* index */
 			j = *p2CurrentWord++;	/* upper bound */
 			if (rtVar[i] > j)
 				errLogRet(LOGIT, debugInfo,
 					  "RTASSERTH: THIS IS VERY WRONG.\n");
+#endif   // RACQ
 			break;
 
 		case RTASSERTL:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " RTASSERTL\n");
 			i = *p2CurrentWord++;	/* index */
 			j = *p2CurrentWord++;	/* lower bound */
 			if (rtVar[i] < j)
 				errLogRet(LOGIT, debugInfo,
 					  "RTASSERTL: THIS IS VERY WRONG.\n");
+#endif   // RACQ
 			break;
 
 #ifdef LONGLONGCASE
@@ -2523,6 +2635,9 @@ int A32_interp()
 			break;
 
 		case VDELAY_LIST:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " VDELAY_LIST\n");
 			pat_index = *p2CurrentWord++;	/* pattern id for vdelay list sets */
 			i = *p2CurrentWord++;	/* v-index */
@@ -2619,10 +2734,14 @@ int A32_interp()
 				}
 			}
 #endif
+#endif   // RACQ
 			break;
 
 			/* PADDELAY <- OMITTED */
 		case PAD_DELAY:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, " PAD_DELAY\n");
 			i = *p2CurrentWord++;
 			j = *p2CurrentWord++;
@@ -2632,6 +2751,7 @@ int A32_interp()
 			else
 				writeCntrlFifoWord(LATCHKEY | DURATIONKEY |
 						   (0x3ffffff & j));
+#endif   // RACQ
 			break;
 
 			/*
@@ -2639,6 +2759,7 @@ int A32_interp()
 			 */
 
 		case TABLE:
+         RACQCALL(action);
 			DPRINT(-1, " TABLE\n");
 			/* i = Table Index  0-59 for t1-t60    j = Table Size */
 
@@ -2678,6 +2799,7 @@ int A32_interp()
 			 */
 		case TASSIGN:
 
+         RACQCALL(action);
 			i = *p2CurrentWord++;
 			j = *p2CurrentWord++;
 			k = *p2CurrentWord++;
@@ -2691,6 +2813,9 @@ int A32_interp()
 			break;
 
 		case TPUT:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 
 			i = *p2CurrentWord++;
 			j = *p2CurrentWord++;
@@ -2702,10 +2827,14 @@ int A32_interp()
 			putTableElement(i, l, rtVar[k], &errorcode, "tassign");
 			if (errorcode)
 				return (errorcode);
+#endif   // RACQ
 			break;
 
 		case TCOUNT:
 			{
+#ifdef RACQ
+         RACQCALL(action);
+#else
 				int *p2TableWord, *ptr;
 				int tableSize, elemSize, count;
 				i = *p2CurrentWord++;
@@ -2743,6 +2872,7 @@ int A32_interp()
 					}
 				}
 				rtVar[k] = count;
+#endif   // RACQ
 			}
 			break;
 
@@ -2773,6 +2903,9 @@ int A32_interp()
 			 * an SS2 parameter...
 			 */
 		case INITSCAN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(+1, " INIT_SCAN\n");
 			/* RF ONLY USE */
 #ifdef RF_CNTLR
@@ -2845,9 +2978,13 @@ int A32_interp()
 #endif
 
 			/* popInLowCore(args); */
+#endif   // RACQ
 			break;
 
 		case NEXTSCAN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT4(+0,
 				" NEXTSCAN +++++++++++++++++++++++ For ct: %lu, nt: %lu, bsct: %lu ssct: %ld   +++++++++++++++++++ \n",
 				pAcqReferenceData->ct, pAcqReferenceData->nt,
@@ -2895,9 +3032,13 @@ int A32_interp()
 #endif
 
 			/* popInLowCore(args); */
+#endif   // RACQ
 			break;
 
 		case ENDOFSCAN:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT4(+0,
 				" ENDOFSCAN ++++++++++++++++++++ For ct: %lu, nt: %lu, bsct: %lu, ssct: %ld ++++++++++++++++ \n",
 				pAcqReferenceData->ct, pAcqReferenceData->nt,
@@ -2949,12 +3090,17 @@ int A32_interp()
 				parseAheadDecrement(WAIT_FOREVER);	/* pend parser max of 10 sec then times out */
 			}
 #endif
+#endif   // RACQ
 			break;
 
 #ifndef DDR_CNTLR
 		case SEND_ZERO_FID:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			i = *p2CurrentWord++;
 			i = *p2CurrentWord++;
+#endif   // RACQ
 			break;
 #endif
 
@@ -2964,6 +3110,9 @@ int A32_interp()
 			 * management. If il is on popd lc to storage.
 			 */
 		case NEXTCODESET:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT2(+0, " NEXTCODESET: present: %d, next: %d\n",
 				curAcodeNumber, (curAcodeNumber + 1));
 			/*
@@ -3012,9 +3161,6 @@ int A32_interp()
 				errorcode = SYSTEMERROR + NOACODESET;
 				return (errorcode);	/* for the READER ONLY */
 			}
-#endif
-
-#ifndef RACQ
 			DPRINT1(+0,
 				"A32Interp(): pAcodeId->cur_acode_size: %d bytes\n",
 				pAcodeId->cur_acode_size);
@@ -3039,6 +3185,7 @@ int A32_interp()
 #endif
 
 			initvalFlag = 1;
+#endif   // RACQ
 			break;
 
 			/*
@@ -3048,6 +3195,9 @@ int A32_interp()
 			 * function.
 			 */
 		case END_PARSE:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			// dumpStatBlocks( 1 );
 			i = *p2CurrentWord++;
 			DPRINT1(-1, " END_PARSE %d\n", i);
@@ -3074,6 +3224,7 @@ int A32_interp()
 #endif
 			// TSPRINT("Returning to AParse:");
 			return (errorcode);	/* for the READER ONLY */
+#endif   // RACQ
 			break;
 
 			/* indicate that acquisition is in the Interleave mode */
@@ -3892,6 +4043,9 @@ int A32_interp()
 			   int wordsperstate, int offset
 			 */
 		case DECPROGON:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			i = *p2CurrentWord++;	/* patternID */
 			lscratch1.nword[0] = *p2CurrentWord++;	/* pattern ticks high word */
 			lscratch1.nword[1] = *p2CurrentWord++;	/* pattern ticks low word */
@@ -3909,9 +4063,13 @@ int A32_interp()
 			progDecOn(i, (lscratch1.lword), (lscratch2.lword), j, k,
 				  (lscratch3.lword), l);
 
+#endif   // RACQ
 			break;
 
 		case DECPROGOFF:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			/*
 			   DECPROGOFF
 			   - pattern id, policy, long long cycleInTicks
@@ -3987,6 +4145,7 @@ int A32_interp()
 			} else
 				errLogRet(LOGIT, debugInfo,
 					  "invalid decoupler synchronization type\n");
+#endif   // RACQ
 			break;
 
 			/*
@@ -3998,6 +4157,9 @@ int A32_interp()
 			 */
 
 		case VLOOPTICKS:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			lscratch1.nword[0] = *p2CurrentWord++;
 			lscratch1.nword[1] = *p2CurrentWord++;
 			i = rtVar[nvLoopCntrInd[loopStkPos]];
@@ -4009,6 +4171,7 @@ int A32_interp()
 					"VLOOPTICKS: loopcounter=%d   added %lld ticks to DecInfo.vTicks total=%lld\n",
 					i, lscratch1.lword, DecInfo.vTicks);
 			}
+#endif   // RACQ
 			break;
 
 			/*
@@ -6841,7 +7004,9 @@ int A32_interp()
 
 		case MRIUSERBYTE:
 			{
-#ifndef RACQ
+#ifdef RACQ
+         RACQCALL(action);
+#else
 				int rw, i, ticks, auxVal;
 				rw = *p2CurrentWord++;	// read or write?
 				i = *p2CurrentWord++;	// rtVar index
@@ -6890,6 +7055,9 @@ int A32_interp()
 			 */
 		case ROTORSYNC_TRIG:
 			{
+#ifdef RACQ
+         RACQCALL(action);
+#else
 				int rtparmflg, rtindex, count;
 				int num, postdelay;
 
@@ -6909,6 +7077,7 @@ int A32_interp()
 				if (count > 0) {
 					num = RotorSync(count, postdelay);
 				}
+#endif   // RACQ
 			}
 			break;
 
@@ -6916,7 +7085,9 @@ int A32_interp()
 
 		case GETSAMP:
 			{
-#ifndef RACQ
+#ifdef RACQ
+         RACQCALL(action);
+#else
 				int bumpFlag;
 				int ret, skipsampdetect;
 				unsigned long sample2ChgTo;
@@ -6943,7 +7114,9 @@ int A32_interp()
 
 		case LOADSAMP:
 			{
-#ifndef RACQ
+#ifdef RACQ
+         RACQCALL(action);
+#else
 				int bumpFlag, spinActive;
 				int ret, skipsampdetect;
 				unsigned long sample2ChgTo;
@@ -6974,6 +7147,9 @@ int A32_interp()
 
 		case PFGSETZLVL:
 			{
+#ifdef RACQ
+         RACQCALL(action);
+#else
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 				int encoded = *p2CurrentWord++;
@@ -6992,15 +7168,20 @@ int A32_interp()
 					"setting PFGZLVL[%d] to %d corrected to %d\n",
 					key, value, capped);
 				writeCntrlFifoBuf(&reencoded, 1);
+#endif   // RACQ
 			}
 			break;
 
 		case PFGSETZCORR:
+#ifdef RACQ
+         RACQCALL(action);
+#else
 			DPRINT(-1, "PFGSETZCORR\n");
 			zgradcorrhi = *p2CurrentWord++;
 			zgradcorrlo = *p2CurrentWord++;
 			DPRINT2(-1, "setting PFGZCORR to <%d,%d>\n",
 				zgradcorrlo, zgradcorrhi);
+#endif   // RACQ
 			break;
 
 		default:
@@ -7009,11 +7190,13 @@ int A32_interp()
 					action, (action & 0xfffff));
 			break;
 		}
+#ifndef RACQ
 	}
 	errLogRet(LOGIT, debugInfo,
 		  "Fell out of Interpreter 'while'. This is an ERROR.\n");
 	markAcodeSetDone(expName, curAcodeNumber);
 	errorcode = HDWAREERROR + INVALIDACODE;
+#endif
 	return (errorcode);	/* for the READER ONLY */
 }
 

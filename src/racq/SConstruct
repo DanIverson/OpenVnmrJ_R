@@ -32,11 +32,14 @@ nvacqPath    = os.path.join(cwd, os.pardir, 'nvacq')
 nvacqHdrList = ['logMsgLib.h',
                ]
 
-a32interpFileList = ['A32Interp.c']
-a32interpFileList = ['A32Interp.c']
+a32interpFileList = ['A32Interp.c',
+                     'debug.c',
+                     'rpsg.c',
+               ]
 
 # build environments
-env = Environment(CCFLAGS    = '-O -Wall',
+# env = Environment(CCFLAGS    = '-O2 -Wno-implicit-function-declaration',
+env = Environment(CCFLAGS    = '-O2 -Wall',
                       CPPDEFINES = ['RACQ'],
                       LINKFLAGS  = '',
                       CPPPATH    = [cwd])
@@ -44,7 +47,7 @@ env = Environment(CCFLAGS    = '-O -Wall',
 buildMethods.makeSymLinks(env, a32interpTarget, cwd, nvpsgPath, nvpsgHdrList)
 buildMethods.makeSymLinks(env, a32interpTarget, cwd, vnmrPath, vnmrHdrList)
 buildMethods.makeSymLinks(env, a32interpTarget, cwd, expprocPath, expprocHdrList)
-buildMethods.makeSymLinks(env, a32interpTarget, cwd, nvacqPath, nvacqHdrList)
+# buildMethods.makeSymLinks(env, a32interpTarget, cwd, nvacqPath, nvacqHdrList)
 
 # actual builds
 # give these a different object name to avoid collision with diffparams build
